@@ -1,0 +1,26 @@
+server:
+  port: 8090
+  servlet:
+    context-path: /
+    session:
+      timeout: 600s
+  error:
+    include-message: always
+
+spring:
+  application:
+    name: vpn-manager
+  datasource:
+    url: jdbc:ydb:grpcs://ydb.serverless.yandexcloud.net:2135/ru-central1/b1gvjnls3r14fhkv4bo3/etnuldj0o4rtb1ep4dv3?saFile=file:sa_key.json
+    driver-class-name: tech.ydb.jdbc.YdbDriver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  mvc:
+    format:
+      date-time: yyyy-MM-dd HH:mm:ss
