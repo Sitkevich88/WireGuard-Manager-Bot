@@ -24,10 +24,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
-
-    implementation("org.hibernate:hibernate-core:6.4.0.Final")
-    implementation("org.hibernate:hibernate-entitymanager:5.6.15.Final")
-    implementation("org.hibernate.validator:hibernate-validator:8.0.1.Final")
+    //implementation("org.hibernate.validator:hibernate-validator:8.0.1.Final")
     
     runtimeOnly("tech.ydb.jdbc:ydb-jdbc-driver:2.0.3")
     

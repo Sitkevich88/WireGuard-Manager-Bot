@@ -15,12 +15,12 @@ spring:
     driver-class-name: tech.ydb.jdbc.YdbDriver
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: true
     properties:
       hibernate:
         format_sql: true
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+        dialect: ru.itmo.vpnapp.hibernate.YDBDialect
   mvc:
     format:
       date-time: yyyy-MM-dd HH:mm:ss
