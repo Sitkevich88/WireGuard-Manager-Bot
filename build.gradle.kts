@@ -22,15 +22,12 @@ repositories {
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
-    
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("javax.xml.bind:jaxb-api:2.3.1")
-    
+    implementation("com.jcraft:jsch:0.1.55")
     implementation("org.telegram:telegrambots-spring-boot-starter:$tgBotLibVersion")
-    //implementation("org.telegram:telegrambots-abilities:$tgBotLibVersion")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
-    implementation("org.springframework.boot:spring-boot-starter-actuator")
-    //implementation("org.hibernate.validator:hibernate-validator:8.0.1.Final")
     
     runtimeOnly("tech.ydb.jdbc:ydb-jdbc-driver:2.0.3")
     

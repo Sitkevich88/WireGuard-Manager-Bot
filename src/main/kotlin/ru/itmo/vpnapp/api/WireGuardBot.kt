@@ -2,6 +2,7 @@ package ru.itmo.vpnapp.api
 
 import org.telegram.telegrambots.bots.TelegramLongPollingBot
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage
 import org.telegram.telegrambots.meta.api.objects.Update
 import ru.itmo.vpnapp.service.TgMessageHandler
 
@@ -47,7 +48,12 @@ class WireGuardBot(
 
             else -> {
                 if (message.startsWith("/add_server")) {
-                    messageHandler.addServer(update)
+                    val resp = messageHandler.addServer(update)
+                    /*if (resp.text == "Сервер успешно добавлен") {
+                        execute(DeleteMessage(chatId, update.message.messageId))
+                    }*/
+                    
+                    resp
                 } else if (message.startsWith("/list")) {
                     messageHandler.listServerUsers(update)
                 } else if (message.startsWith("/add_user")) {
