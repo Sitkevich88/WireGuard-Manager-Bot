@@ -22,7 +22,7 @@ class WireGuardBot(
 /list - список пользователей VPN
 /add_user username - добавить пользователя VPN
 /remove_user username - удалить пользователя VPN
-/remove - забыть сервер
+/logout - забыть сервер
         """
         const val CREATOR_TEXT = "Создатель: @gorkiy_mensch"
     }
@@ -60,7 +60,7 @@ class WireGuardBot(
                     messageHandler.addVPNUser(update)
                 } else if (message.startsWith("/remove_user")) {
                     messageHandler.removeVPNUser(update)
-                } else if (message.startsWith("/remove")) {
+                } else if (message.startsWith("/logout")) {
                     messageHandler.removeServer(update)
                 } else {
                     SendMessage(chatId, "Неизвестная команда.\n\r$HELP_TEXT")

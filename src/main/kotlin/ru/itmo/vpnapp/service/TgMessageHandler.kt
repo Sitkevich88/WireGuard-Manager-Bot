@@ -1,11 +1,13 @@
 package ru.itmo.vpnapp.service
 
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import org.telegram.telegrambots.meta.api.objects.Update
 import ru.itmo.vpnapp.model.Server
 import ru.itmo.vpnapp.model.TgChat
 import ru.itmo.vpnapp.repo.TgChatRepository
+import kotlin.jvm.optionals.getOrElse
 
 
 @Service
@@ -13,6 +15,8 @@ class TgMessageHandler(
     val tgChatRepository: TgChatRepository,
     val sshService: SshService
 ) {
+    private val log = LoggerFactory.getLogger(TgMessageHandler::class.java)
+
     /**
      * /start
      */
@@ -67,16 +71,22 @@ class TgMessageHandler(
             return SendMessage(chatId.toString(), "Неверный формат пароля")
         }
 
-        if (!sshService.canConnect(
-                Server().apply {
-                    this.host = serverHost
-                    this.port = serverPort
-                    this.login = login
-                    this.password = password
-                }
-            )
-        ) {
+        val server = Server().apply {
+            this.host = serverHost
+            this.port = serverPort
+            this.login = login
+            this.password = password
+        }
+        if (!sshService.canConnect(server)) {
             return SendMessage(chatId.toString(), "Не удалось подключиться к серверу")
+        }
+        try {
+            val chat = tgChatRepository.findById(chatId).get()
+            chat.serverId = sshService.saveServer(server).id
+            tgChatRepository.save(chat)
+        } catch (e: Exception) {
+            log.error("Failed to save server", e)
+            return SendMessage(chatId.toString(), "Не удалось сохранить сервер. Попробуйте еще раз. error: ${e.message}")
         }
         
         return SendMessage(chatId.toString(), "Сервер успешно добавлен")
@@ -86,28 +96,83 @@ class TgMessageHandler(
      * /list
      */
     fun listServerUsers(update: Update): SendMessage {
-        return SendMessage(update.message.chatId.toString(), "TODO")
+        val chatId = update.message.chatId
+        val server = getServerByChat(chatId) ?: return SendMessage(chatId.toString(), "Сервер не найден")
+        
+        val users = try {
+            sshService.listUsers(server)
+        } catch (e: Exception) {
+            log.error("Failed to list users", e)
+            return SendMessage(chatId.toString(), "Не удалось получить список пользователей. error: ${e.message}")
+        }
+
+        return SendMessage(chatId.toString(), users.joinToString(separator = "\n"))
     }
 
     /**
      * /add_user <username>
      */
     fun addVPNUser(update: Update): SendMessage {
-        return SendMessage(update.message.chatId.toString(), "TODO")
+        val chatId = update.message.chatId
+        val server = getServerByChat(chatId) ?: return SendMessage(chatId.toString(), "Сервер не найден")
+        val username = update.message.text.substringAfter("/add_user").trim().replace(Regex("[^\\w\\d-]"), "_")
+        
+        if (username.isBlank()) {
+            return SendMessage(chatId.toString(), "Неверный формат имени пользователя")
+        }
+
+        val existingUsers = try {
+            sshService.listUsers(server)
+        } catch (e: Exception) {
+            log.error("Failed to list users", e)
+            return SendMessage(chatId.toString(), "Не удалось получить список пользователей. error: ${e.message}")
+        }
+        
+        if (existingUsers.contains(username)) {
+            return SendMessage(chatId.toString(), "Пользователь уже существует")
+        }
+        
+        val config = try {
+            sshService.addUser(server, username)
+        } catch (e: Exception) {
+            log.error("Failed to add user", e)
+            return SendMessage(chatId.toString(), "Не удалось добавить пользователя. error: ${e.message}")
+        }
+        
+        return SendMessage(update.message.chatId.toString(), config)
     }
 
     /**
      * /remove_user <username>
      */
     fun removeVPNUser(update: Update): SendMessage {
+        val chatId = update.message.chatId
         return SendMessage(update.message.chatId.toString(), "TODO")
     }
 
     /**
-     * /remove
+     * /logout
      */
     fun removeServer(update: Update): SendMessage {
-        return SendMessage(update.message.chatId.toString(), "TODO")
+        val chatId = update.message.chatId
+        val chat = tgChatRepository.findById(chatId).getOrElse { 
+            return SendMessage(chatId.toString(), "Сервер не найден")
+        }
+        chat.serverId = null
+        
+        try {
+            tgChatRepository.save(chat)
+        } catch (e: Exception) {
+            log.error("Failed to remove serverId from chat", e)
+            return SendMessage(chatId.toString(), "Не удалось забыть сервер. Попробуйте еще раз. error: ${e.message}")
+        }
+        
+        return SendMessage(chatId.toString(), "Сервер успешно забыт. Для добавления нового сервера введите команду /add_server с параметрами сервера")
     }
-
+    
+    private fun getServerByChat(chatId: Long): Server? {
+        val chat = tgChatRepository.findById(chatId).get()
+        
+        return chat.serverId?.let { sshService.serverRepository.findById(it).get() }
+    }
 }

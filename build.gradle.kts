@@ -22,13 +22,17 @@ repositories {
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
-    implementation("org.springframework.boot:spring-boot-starter-actuator")
+    //implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("javax.xml.bind:jaxb-api:2.3.1")
     implementation("com.jcraft:jsch:0.1.55")
     implementation("org.telegram:telegrambots-spring-boot-starter:$tgBotLibVersion")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
-    
+    implementation("org.slf4j:jcl-over-slf4j:2.0.9")
+    //implementation("org.slf4j:slf4j-api:1.7.32")
+    //implementation("ch.qos.logback:logback-classic:1.2.9")
+    //implementation("ch.qos.logback:logback-core:1.2.9")
+
     runtimeOnly("tech.ydb.jdbc:ydb-jdbc-driver:2.0.3")
     
     testImplementation("org.springframework.boot:spring-boot-starter-test")

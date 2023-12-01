@@ -10,5 +10,5 @@ class TgChat {
     var id: Long = 0
     
     @Column(name = "server_id")
-    var serverId: Int? = null
+    var serverId: String? = null
 }
