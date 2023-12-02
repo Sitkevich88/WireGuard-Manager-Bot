@@ -49,9 +49,9 @@ class WireGuardBot(
             else -> {
                 if (message.startsWith("/add_server")) {
                     val resp = messageHandler.addServer(update)
-                    /*if (resp.text == "Сервер успешно добавлен") {
+                    if (resp.text == "Сервер успешно добавлен") {
                         execute(DeleteMessage(chatId, update.message.messageId))
-                    }*/
+                    }
                     
                     resp
                 } else if (message.startsWith("/list")) {
