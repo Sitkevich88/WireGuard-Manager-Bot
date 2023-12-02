@@ -75,7 +75,7 @@ class TgMessageHandler(
             this.host = serverHost
             this.port = serverPort
             this.login = login
-            this.password = password
+            setEncryptedPassword(password)
         }
         if (!sshService.canConnect(server)) {
             return SendMessage(chatId.toString(), "Не удалось подключиться к серверу")
@@ -86,9 +86,12 @@ class TgMessageHandler(
             tgChatRepository.save(chat)
         } catch (e: Exception) {
             log.error("Failed to save server", e)
-            return SendMessage(chatId.toString(), "Не удалось сохранить сервер. Попробуйте еще раз. error: ${e.message}")
+            return SendMessage(
+                chatId.toString(),
+                "Не удалось сохранить сервер. Попробуйте еще раз. error: ${e.message}"
+            )
         }
-        
+
         return SendMessage(chatId.toString(), "Сервер успешно добавлен")
     }
 
@@ -98,7 +101,7 @@ class TgMessageHandler(
     fun listServerUsers(update: Update): SendMessage {
         val chatId = update.message.chatId
         val server = getServerByChat(chatId) ?: return SendMessage(chatId.toString(), "Сервер не найден")
-        
+
         val users = try {
             sshService.listUsers(server)
         } catch (e: Exception) {
@@ -106,7 +109,9 @@ class TgMessageHandler(
             return SendMessage(chatId.toString(), "Не удалось получить список пользователей. error: ${e.message}")
         }
 
-        return SendMessage(chatId.toString(), users.joinToString(separator = "\n"))
+        return SendMessage(
+            chatId.toString(),
+            users.joinToString(separator = "\n") { "• $it" }.ifBlank { "Пользователей нет" })
     }
 
     /**
@@ -116,7 +121,7 @@ class TgMessageHandler(
         val chatId = update.message.chatId
         val server = getServerByChat(chatId) ?: return SendMessage(chatId.toString(), "Сервер не найден")
         val username = update.message.text.substringAfter("/add_user").trim().replace(Regex("[^\\w\\d-]"), "_")
-        
+
         if (username.isBlank()) {
             return SendMessage(chatId.toString(), "Неверный формат имени пользователя")
         }
@@ -127,19 +132,19 @@ class TgMessageHandler(
             log.error("Failed to list users", e)
             return SendMessage(chatId.toString(), "Не удалось получить список пользователей. error: ${e.message}")
         }
-        
+
         if (existingUsers.contains(username)) {
             return SendMessage(chatId.toString(), "Пользователь уже существует")
         }
-        
+
         val config = try {
             sshService.addUser(server, username)
         } catch (e: Exception) {
             log.error("Failed to add user", e)
             return SendMessage(chatId.toString(), "Не удалось добавить пользователя. error: ${e.message}")
         }
-        
-        return SendMessage(update.message.chatId.toString(), config)
+
+        return SendMessage(chatId.toString(), config)
     }
 
     /**
@@ -147,7 +152,32 @@ class TgMessageHandler(
      */
     fun removeVPNUser(update: Update): SendMessage {
         val chatId = update.message.chatId
-        return SendMessage(update.message.chatId.toString(), "TODO")
+        val server = getServerByChat(chatId) ?: return SendMessage(chatId.toString(), "Сервер не найден")
+        val username = update.message.text.substringAfter("/remove_user").trim()
+
+        if (username.isBlank()) {
+            return SendMessage(chatId.toString(), "Нужно указать имя пользователя")
+        }
+
+        val existingUsers = try {
+            sshService.listUsers(server)
+        } catch (e: Exception) {
+            log.error("Failed to list users", e)
+            return SendMessage(chatId.toString(), "Не удалось получить список пользователей. error: ${e.message}")
+        }
+
+        if (!existingUsers.contains(username)) {
+            return SendMessage(chatId.toString(), "Пользователь не существует")
+        }
+
+        val output = try {
+            sshService.removeUser(server, username)
+        } catch (e: Exception) {
+            log.error("Failed to remove user", e)
+            return SendMessage(chatId.toString(), "Не удалось удалить пользователя. error: ${e.message}")
+        }.ifBlank { "Пользователь $username успешно удален" }
+
+        return SendMessage(chatId.toString(), output)
     }
 
     /**
@@ -155,24 +185,27 @@ class TgMessageHandler(
      */
     fun removeServer(update: Update): SendMessage {
         val chatId = update.message.chatId
-        val chat = tgChatRepository.findById(chatId).getOrElse { 
+        val chat = tgChatRepository.findById(chatId).getOrElse {
             return SendMessage(chatId.toString(), "Сервер не найден")
         }
         chat.serverId = null
-        
+
         try {
             tgChatRepository.save(chat)
         } catch (e: Exception) {
             log.error("Failed to remove serverId from chat", e)
             return SendMessage(chatId.toString(), "Не удалось забыть сервер. Попробуйте еще раз. error: ${e.message}")
         }
-        
-        return SendMessage(chatId.toString(), "Сервер успешно забыт. Для добавления нового сервера введите команду /add_server с параметрами сервера")
+
+        return SendMessage(
+            chatId.toString(),
+            "Сервер успешно забыт. Для добавления нового сервера введите команду /add_server с параметрами сервера"
+        )
     }
-    
+
     private fun getServerByChat(chatId: Long): Server? {
         val chat = tgChatRepository.findById(chatId).get()
-        
+
         return chat.serverId?.let { sshService.serverRepository.findById(it).get() }
     }
 }

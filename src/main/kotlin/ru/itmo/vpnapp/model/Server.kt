@@ -11,7 +11,7 @@ class Server {
     var id: String = UUID.randomUUID().toString()
 
     @Column(name = "host")
-    var host = "192.168.0.1" //todo check on localhost
+    var host = ""
 
     @Column(name = "port")
     var port = 22
@@ -20,5 +20,13 @@ class Server {
     var login = "user"
 
     @Column(name = "password")
-    var password = "" //todo hide it
+    var encrypedPassword = ""
+    
+    fun setEncryptedPassword(password: String) {
+        this.encrypedPassword = Base64.getEncoder().encodeToString(password.toByteArray())
+    }
+    
+    fun getDecryptedPassword(): String {
+        return String(Base64.getDecoder().decode(encrypedPassword))
+    }
 }

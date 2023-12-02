@@ -11,12 +11,12 @@ spring:
   application:
     name: vpn-manager
   datasource:
-    url: jdbc:ydb:grpcs://ydb.serverless.yandexcloud.net:2135/ru-central1/b1gvjnls3r14fhkv4bo3/etnuldj0o4rtb1ep4dv3?saFile=file:sa_key.json
+    url: ${YDB_URL}
     driver-class-name: tech.ydb.jdbc.YdbDriver
   jpa:
     hibernate:
       ddl-auto: validate
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
         format_sql: true
@@ -24,3 +24,14 @@ spring:
   mvc:
     format:
       date-time: yyyy-MM-dd HH:mm:ss
+      
+tg:
+  bot:
+    token: ${TG_BOT_TOKEN}
+    username: ${TG_BOT_USERNAME}
+    creatorId: ${TG_BOT_CREATOR_ID}
+    
+ssh:
+  scripts:
+    add_client: 
+      path: ${SSH_ADD_CLIENT_SCRIPT}

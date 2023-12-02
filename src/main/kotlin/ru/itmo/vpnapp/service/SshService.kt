@@ -1,9 +1,7 @@
 package ru.itmo.vpnapp.service
 
-import com.jcraft.jsch.Channel
-import com.jcraft.jsch.ChannelExec
-import com.jcraft.jsch.JSch
-import com.jcraft.jsch.Session
+import com.jcraft.jsch.*
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import ru.itmo.vpnapp.model.Server
 import ru.itmo.vpnapp.repo.ServerRepository
@@ -14,10 +12,13 @@ import java.io.InputStreamReader
 class SshService(
     val serverRepository: ServerRepository
 ) {
+    @Value("\${ssh.scripts.add_client.path}")
+    private lateinit var addClientPath: String
+
     private fun createSession(server: Server): Session {
         val jsch = JSch()
         val session = jsch.getSession(server.login, server.host, server.port)
-        session.setPassword(server.password)
+        session.setPassword(server.getDecryptedPassword())
         session.setConfig("StrictHostKeyChecking", "no")
         session.connect()
         return session
@@ -74,12 +75,33 @@ class SshService(
             .filter { it.isNotBlank() }
             .map { it.trim() }
             .sorted()
-            .map { "- $it" }
     }
 
     fun addUser(server: Server, username: String): String {
         val session = createSession(server)
-        val command = "wg set wg0 peer ${username} allowed-ips 10.0.0.${username}/32"
+
+        // Upload the script to the remote server
+        val channel = session.openChannel("sftp") as ChannelSftp
+        channel.connect()
+        channel.put(addClientPath, "add_client.sh")
+        channel.disconnect()
+
+        // Run the script
+        val output = runCommand(
+            session, "chmod +x add_client.sh; " +
+                    "bash ./add_client.sh $username; " +
+                    "rm add_client.sh"
+        )
+        session.disconnect()
+
+        return output
+    }
+
+    fun removeUser(server: Server, username: String): String {
+        val session = createSession(server)
+        val command =
+            "wg set wg0 peer \"\$(sed -n \"/^# BEGIN_PEER $username\$/,\\\$p\" /etc/wireguard/wg0.conf | grep -m 1 PublicKey | cut -d \" \" -f 3)\" remove; " +
+                    "sed -i \"/^# BEGIN_PEER $username\$/,/^# END_PEER $username\$/d\" /etc/wireguard/wg0.conf"
         val output = runCommand(session, command)
         session.disconnect()
 

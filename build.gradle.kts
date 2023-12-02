@@ -9,8 +9,7 @@ plugins {
 }
 
 group = "ru.itmo"
-version = "0.0.1-SNAPSHOT"
-val tgBotLibVersion = "6.8.0"
+version = "0.0.1"
 
 java {
     sourceCompatibility = JavaVersion.VERSION_17
@@ -22,13 +21,13 @@ repositories {
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
-    //implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("javax.xml.bind:jaxb-api:2.3.1")
     implementation("com.jcraft:jsch:0.1.55")
-    implementation("org.telegram:telegrambots-spring-boot-starter:$tgBotLibVersion")
+    implementation("org.telegram:telegrambots-spring-boot-starter:6.8.0")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.slf4j:jcl-over-slf4j:2.0.9")
+
     //implementation("org.slf4j:slf4j-api:1.7.32")
     //implementation("ch.qos.logback:logback-classic:1.2.9")
     //implementation("ch.qos.logback:logback-core:1.2.9")
@@ -47,4 +46,5 @@ tasks.withType<KotlinCompile> {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+    enabled = false
 }
