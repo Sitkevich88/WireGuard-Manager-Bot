@@ -1,0 +1,66 @@
+image:
+  name: "gradle:8.4.0-jdk17"
+
+services:
+  - docker:dind
+
+cache:
+  paths:
+    - build/
+
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: ""
+  IMAGE_TAG: cr.yandex/***/vpn-manager:latest
+  cloud_id: "***"
+  cart_prod: labs
+
+stages:
+  - debug
+  - build
+  - publish-image
+  - deploy
+
+debug:
+  stage: debug
+  image: docker:stable
+  script:
+    - docker version
+    - docker info
+
+build-app:
+  stage: build
+  script:
+    - apt-get update -y
+    - apt-get install -y openjdk-17-jdk
+    - chmod +x gradlew
+    - export GRADLE_OPTS="-Dorg.gradle.daemon=false"
+    - bash ./gradlew build
+  cache:
+    paths:
+      - build/libs/
+
+publish-image:
+  stage: publish-image
+  image: docker:stable
+  only:
+    - master
+  script:
+    - echo ${SA_KEY} | docker login -u json_key --password-stdin cr.yandex
+    - docker build -t "${IMAGE_TAG}" .
+    - docker push "${IMAGE_TAG}"
+
+release:
+  stage: deploy
+  image: alpine:3.15
+  only:
+    - master
+  script:
+    - apk add -q --no-cache bash curl jq gettext
+    - curl -f -s -LO https://storage.yandexcloud.net/yandexcloud-yc/install.sh
+    - bash install.sh -i /usr/local/yandex-cloud -n
+    - ln -s /usr/local/yandex-cloud/bin/yc /usr/local/bin/yc
+    - echo "${SA_KEY}" > key.json
+    - yc config profile create sa-profile
+    - yc config set service-account-key key.json
+    - yc serverless container revision deploy --container-name vpn-bot --image "${IMAGE_TAG}" --cores 1 --core-fraction 50 --memory 512mb --concurrency 16 --execution-timeout 10s --cloud-id ${cloud_id} --folder-name ${cart_prod} --service-account-id ${PROD_SA_ID} --network-name default --min-instances 1
